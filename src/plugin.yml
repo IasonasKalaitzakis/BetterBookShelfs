@@ -1,0 +1,5 @@
+main: com.spaceman.bookshelfs.Main
+version: 1.14.1
+name: BetterBookshelfs
+api-version: 1.13
+author: The_Spaceman
