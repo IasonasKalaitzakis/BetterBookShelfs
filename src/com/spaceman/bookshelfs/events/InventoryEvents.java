@@ -16,6 +16,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import static com.spaceman.bookshelfs.Main.SHELF_SIZE;
+import static com.spaceman.bookshelfs.Main.name;
 
 public class InventoryEvents implements Listener {
     
@@ -23,7 +24,7 @@ public class InventoryEvents implements Listener {
     @SuppressWarnings("unused")
     public void event(InventoryCloseEvent e) {
         
-        if (e.getView().getTitle().equals(ChatColor.DARK_GRAY + "Book Shelf")) {
+        if (e.getView().getTitle().equals(name)) {
             saveInventory(e.getInventory(), (Player) e.getPlayer());
         }
     }
@@ -40,6 +41,9 @@ public class InventoryEvents implements Listener {
                     !is.getType().equals(Material.WRITTEN_BOOK) &&
                     !is.getType().equals(Material.WRITABLE_BOOK) &&
                     !is.getType().equals(Material.KNOWLEDGE_BOOK) &&
+                    !is.getType().equals(Material.PAPER) &&
+                    !is.getType().equals(Material.MAP) &&
+                    !is.getType().equals(Material.FILLED_MAP) &&
                     !is.getType().equals(Material.ENCHANTED_BOOK)) {
             
                 inventory.setItem(i, null);
@@ -59,7 +63,7 @@ public class InventoryEvents implements Listener {
     @SuppressWarnings("unused")
     public void event(InventoryClickEvent e) {
         
-        if (e.getView().getTitle().equals(ChatColor.DARK_GRAY + "Book Shelf")) {
+        if (e.getView().getTitle().equals(name)) {
             if (e.getRawSlot() == -999) {
                 return;
             }
@@ -77,6 +81,8 @@ public class InventoryEvents implements Listener {
                         !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.KNOWLEDGE_BOOK) &&
                         !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.WRITABLE_BOOK) &&
                         !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.PAPER) &&
+                        !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.MAP) &&
+                        !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.FILLED_MAP) &&
                         !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.ENCHANTED_BOOK)) {
                     
                     e.setCancelled(true);
@@ -91,6 +97,8 @@ public class InventoryEvents implements Listener {
                         !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.WRITABLE_BOOK) && !getOrDefault(e.getCursor(), new ItemStack(Material.AIR)).getType().equals(Material.WRITABLE_BOOK) &&
                         !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.KNOWLEDGE_BOOK) && !getOrDefault(e.getCursor(), new ItemStack(Material.AIR)).getType().equals(Material.KNOWLEDGE_BOOK) &&
                         !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.PAPER) && !getOrDefault(e.getCursor(), new ItemStack(Material.AIR)).getType().equals(Material.PAPER) &&
+                        !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.MAP) && !getOrDefault(e.getCursor(), new ItemStack(Material.AIR)).getType().equals(Material.MAP) &&
+                        !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.FILLED_MAP) && !getOrDefault(e.getCursor(), new ItemStack(Material.AIR)).getType().equals(Material.FILLED_MAP) &&
                         !getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.ENCHANTED_BOOK) && !getOrDefault(e.getCursor(), new ItemStack(Material.AIR)).getType().equals(Material.ENCHANTED_BOOK)) {
                     
                     e.setCancelled(true);

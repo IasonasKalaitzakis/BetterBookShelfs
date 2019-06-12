@@ -4,7 +4,6 @@ import com.spaceman.bookshelfs.Main;
 import com.spaceman.bookshelfs.Pair;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -25,34 +24,81 @@ public class BlockEvents implements Listener {
         
         //todo add lock/remove lock
         
-        if (e.getAction().equals(Action.RIGHT_CLICK_BLOCK) && Material.BOOKSHELF.equals(e.getClickedBlock().getType()) && !e.getPlayer().isSneaking() && EquipmentSlot.HAND.equals(e.getHand())) {
+        if (e.getAction().equals(Action.RIGHT_CLICK_BLOCK) && Material.BOOKSHELF.equals(e.getClickedBlock().getType()) && EquipmentSlot.HAND.equals(e.getHand())) {
             e.setCancelled(true);
             
-            if (Main.viewers.values().stream().noneMatch(p -> p.getLeft().equals(e.getClickedBlock().getLocation()))) {
+            if (e.getPlayer().isSneaking()) {
                 
-                if (Main.inventories.get(e.getClickedBlock().getLocation()).getRight() == null) {
-                    e.getPlayer().sendMessage(ChatColor.RED + "This bookshelf has a lock");
-                    e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.BLOCK_CHEST_LOCKED, 1, 1);
-                    return;
-                }
-                
-                Pair<Location, String> pair = new Pair<>(
-                        e.getClickedBlock().getLocation(),
-                        Main.inventories.getOrDefault(
-                            e.getClickedBlock().getLocation(),
-                            new Pair<>(null, null)
-                ).getRight());
-                
-                Main.viewers.put(e.getPlayer().getUniqueId(), pair);
-                
-                if (Main.inventories.containsKey(e.getClickedBlock().getLocation())) {
-                    e.getPlayer().openInventory(Main.inventories.get(e.getClickedBlock().getLocation()).getLeft());
+                if (Main.viewers.values().stream().noneMatch(p -> p.getLeft().equals(e.getClickedBlock().getLocation()))) {
+                    
+                    if (e.getPlayer().getInventory().getItemInMainHand().getType().equals(Material.TRIPWIRE_HOOK)) {
+                        ItemMeta im = e.getPlayer().getInventory().getItemInMainHand().getItemMeta();
+                        
+                        if (im != null && im.hasDisplayName()) {
+                            
+                            if (Main.inventories.getOrDefault(e.getClickedBlock().getLocation(), new Pair<>(null, null)).getRight() != null) {
+                                String lock = Main.inventories.get(e.getClickedBlock().getLocation()).getRight();
+                                if (lock.equals(im.getDisplayName())) {
+                                    Pair<Inventory, String> p = Main.inventories.getOrDefault(e.getClickedBlock().getLocation(), new Pair<>(null, null));
+                                    p.setRight(null);
+                                    Main.inventories.put(e.getClickedBlock().getLocation(), p);
+                                    e.getPlayer().sendMessage(ChatColor.DARK_AQUA + "Lock has been removed");
+                                } else {
+                                    e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.BLOCK_CHEST_LOCKED, 1, 1);
+                                    e.getPlayer().sendMessage(ChatColor.RED + "Can't unlock this current password");
+                                }
+                            } else {
+                                Pair<Inventory, String> p = Main.inventories.getOrDefault(e.getClickedBlock().getLocation(), new Pair<>(null, null));
+                                p.setRight(im.getDisplayName());
+                                Main.inventories.put(e.getClickedBlock().getLocation(), p);
+                                e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.BLOCK_CHEST_LOCKED, 1, 1);
+                                e.getPlayer().sendMessage(ChatColor.DARK_AQUA + "Lock has been set to " + ChatColor.BLUE + im.getDisplayName());
+                            }
+                        }
+                    }
                 } else {
-                    Inventory inv = Bukkit.createInventory(null, SHELF_SIZE, ChatColor.DARK_GRAY + "Book Shelf");
-                    e.getPlayer().openInventory(inv);
+                    e.getPlayer().sendMessage(ChatColor.RED + "Can't change the lock when somebody is looking in the bookshelf");
                 }
             } else {
-                e.getPlayer().sendMessage(ChatColor.RED + "Only 1 player can view a bookshelf");
+                
+                if (Main.viewers.values().stream().noneMatch(p -> p.getLeft().equals(e.getClickedBlock().getLocation()))) {
+                    
+                    if (Main.inventories.getOrDefault(e.getClickedBlock().getLocation(), new Pair<>(null, null)).getRight() != null) {
+                        if (e.getPlayer().getInventory().getItemInMainHand().getType().equals(Material.TRIPWIRE_HOOK) &&
+                                        e.getPlayer().getInventory().getItemInMainHand().hasItemMeta() &&
+                                        e.getPlayer().getInventory().getItemInMainHand().getItemMeta().hasDisplayName()) {
+    
+                            String lock = e.getPlayer().getInventory().getItemInMainHand().getItemMeta().getDisplayName();
+                            if (!Main.inventories.get(e.getClickedBlock().getLocation()).getRight().equals(lock)) {
+                                e.getPlayer().sendMessage(ChatColor.RED + "This bookshelf has a lock");
+                                e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.BLOCK_CHEST_LOCKED, 1, 1);
+                                return;
+                            }
+                        } else {
+                            e.getPlayer().sendMessage(ChatColor.RED + "This bookshelf has a lock");
+                            e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.BLOCK_CHEST_LOCKED, 1, 1);
+                            return;
+                        }
+                    }
+                    
+                    Pair<Location, String> pair = new Pair<>(
+                            e.getClickedBlock().getLocation(),
+                            Main.inventories.getOrDefault(
+                                    e.getClickedBlock().getLocation(),
+                                    new Pair<>(null, null)
+                            ).getRight());
+                    
+                    Main.viewers.put(e.getPlayer().getUniqueId(), pair);
+                    
+                    if (Main.inventories.containsKey(e.getClickedBlock().getLocation())) {
+                        e.getPlayer().openInventory(Main.inventories.get(e.getClickedBlock().getLocation()).getLeft());
+                    } else {
+                        Inventory inv = Bukkit.createInventory(null, SHELF_SIZE, Main.name);
+                        e.getPlayer().openInventory(inv);
+                    }
+                } else {
+                    e.getPlayer().sendMessage(ChatColor.RED + "Only 1 player can view a bookshelf");
+                }
             }
         }
     }
@@ -73,7 +119,7 @@ public class BlockEvents implements Listener {
             if (Main.inventories.containsKey(e.getBlock().getLocation())) {
                 
                 Location l = e.getBlock().getLocation();
-    
+                
                 if (Main.viewers.values().stream().noneMatch(p -> p.getLeft().equals(l))) {
                     InventoryEvents.saveInventory(e.getPlayer().getInventory(), e.getPlayer());
                 }

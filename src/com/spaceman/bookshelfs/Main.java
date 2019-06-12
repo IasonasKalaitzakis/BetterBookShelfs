@@ -14,7 +14,7 @@ import java.util.UUID;
 
 public class Main extends JavaPlugin {
     
-    public static final int SHELF_SIZE = 18;//this number must be a multiple of 9, example: 1 rows * 9 = 18
+    public static final int SHELF_SIZE = 18;//this number must be a multiple of 9, example: 2 rows * 9 = 18
     
     public static HashMap<Location, Pair<Inventory, String>> inventories = new HashMap<>();
     public static HashMap<UUID, Pair<Location, String>> viewers = new HashMap<>();
@@ -26,6 +26,11 @@ public class Main extends JavaPlugin {
         * changelog
         *
         * added paper to the whitelist
+        * added maps to the whitelist
+        * added locks
+        *   to lock a bookshelf -> open a bookshelf sneaked with a renamed tripwire hook to lock it (the name is the code)
+        *   to unlock a bookshelf -> open a bookshelf sneaked with a renamed tripwire hook to unlock it (the name must be the code)
+        *   to open a locked bookshelf -> open the bookshelf while holding a tripwire hook with the name of the lock
         * */
         
         PluginManager pm = getServer().getPluginManager();
@@ -100,10 +105,12 @@ public class Main extends JavaPlugin {
         return true;
     }
     
+    
+    public static final String name = ChatColor.DARK_GRAY + "Book Shelf";
+    
     private Inventory getInventory(String path) {
         int size = getConfig().getInt(path + ".size");
 //        String name = getConfig().getString(path + ".name");
-        String name = ChatColor.DARK_GRAY + "Book Shelf";
         
         Inventory inv = Bukkit.createInventory(null, size, name);
         
