@@ -4,6 +4,8 @@ import com.spaceman.bookshelfs.Main;
 import com.spaceman.bookshelfs.Pair;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.ShulkerBox;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -12,17 +14,77 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import static com.spaceman.bookshelfs.Main.SHELF_SIZE;
 
 public class BlockEvents implements Listener {
     
+    public boolean hasLock(String lock, Player player) {
+        
+        if (lock == null) {
+            return true;
+        }
+        
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (item == null) {
+                continue;
+            }
+            if (seekShulkerBox(lock, item)) {
+                return true;
+            }
+            
+            if (!item.hasItemMeta()) {
+                continue;
+            }
+            ItemMeta im = item.getItemMeta();
+            if (im == null || !im.hasDisplayName()) {
+                continue;
+            }
+            
+            if (lock.equals(im.getDisplayName())) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private boolean seekShulkerBox(String lock, ItemStack shulkerBox) {
+        
+        if (shulkerBox.getType().name().equals("SHULKER_BOX") || shulkerBox.getType().name().endsWith("SHULKER_BOX")) {
+            
+            if (shulkerBox.getItemMeta() instanceof BlockStateMeta) {
+                BlockStateMeta im = (BlockStateMeta) shulkerBox.getItemMeta();
+                if (im.getBlockState() instanceof ShulkerBox) {
+                    ShulkerBox shulker = (ShulkerBox) im.getBlockState();
+                    for (ItemStack is : shulker.getInventory().getContents()) {
+                        if (is == null) {
+                            continue;
+                        }
+                        if (!is.hasItemMeta()) {
+                            continue;
+                        }
+                        ItemMeta itemMeta = is.getItemMeta();
+                        if (itemMeta == null || !itemMeta.hasDisplayName()) {
+                            continue;
+                        }
+                        
+                        if (lock.equals(itemMeta.getDisplayName())) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+    
     @EventHandler
     @SuppressWarnings("unused")
     public void Event(PlayerInteractEvent e) {
-        
-        //todo add lock/remove lock
         
         if (e.getAction().equals(Action.RIGHT_CLICK_BLOCK) && Material.BOOKSHELF.equals(e.getClickedBlock().getType()) && EquipmentSlot.HAND.equals(e.getHand())) {
             e.setCancelled(true);
@@ -64,17 +126,7 @@ public class BlockEvents implements Listener {
                 if (Main.viewers.values().stream().noneMatch(p -> p.getLeft().equals(e.getClickedBlock().getLocation()))) {
                     
                     if (Main.inventories.getOrDefault(e.getClickedBlock().getLocation(), new Pair<>(null, null)).getRight() != null) {
-                        if (e.getPlayer().getInventory().getItemInMainHand().getType().equals(Material.TRIPWIRE_HOOK) &&
-                                        e.getPlayer().getInventory().getItemInMainHand().hasItemMeta() &&
-                                        e.getPlayer().getInventory().getItemInMainHand().getItemMeta().hasDisplayName()) {
-    
-                            String lock = e.getPlayer().getInventory().getItemInMainHand().getItemMeta().getDisplayName();
-                            if (!Main.inventories.get(e.getClickedBlock().getLocation()).getRight().equals(lock)) {
-                                e.getPlayer().sendMessage(ChatColor.RED + "This bookshelf has a lock");
-                                e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.BLOCK_CHEST_LOCKED, 1, 1);
-                                return;
-                            }
-                        } else {
+                        if (!hasLock(Main.inventories.get(e.getClickedBlock().getLocation()).getRight(), e.getPlayer())) {
                             e.getPlayer().sendMessage(ChatColor.RED + "This bookshelf has a lock");
                             e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.BLOCK_CHEST_LOCKED, 1, 1);
                             return;

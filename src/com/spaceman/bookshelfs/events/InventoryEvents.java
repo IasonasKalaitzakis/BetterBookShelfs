@@ -2,7 +2,6 @@ package com.spaceman.bookshelfs.events;
 
 import com.spaceman.bookshelfs.Main;
 import com.spaceman.bookshelfs.Pair;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -20,23 +19,14 @@ import static com.spaceman.bookshelfs.Main.name;
 
 public class InventoryEvents implements Listener {
     
-    @EventHandler
-    @SuppressWarnings("unused")
-    public void event(InventoryCloseEvent e) {
-        
-        if (e.getView().getTitle().equals(name)) {
-            saveInventory(e.getInventory(), (Player) e.getPlayer());
-        }
-    }
-    
     static void saveInventory(Inventory inventory, Player player) {
-    
+        
         for (int i = 0; i < inventory.getSize(); i++) {
             ItemStack is = inventory.getItem(i);
-        
+            
             if (is == null)
                 continue;
-        
+            
             if (!is.getType().equals(Material.BOOK) &&
                     !is.getType().equals(Material.WRITTEN_BOOK) &&
                     !is.getType().equals(Material.WRITABLE_BOOK) &&
@@ -45,9 +35,9 @@ public class InventoryEvents implements Listener {
                     !is.getType().equals(Material.MAP) &&
                     !is.getType().equals(Material.FILLED_MAP) &&
                     !is.getType().equals(Material.ENCHANTED_BOOK)) {
-            
+                
                 inventory.setItem(i, null);
-            
+                
                 for (ItemStack item : player.getInventory().addItem(is).values()) {
                     player.getWorld().dropItemNaturally(player.getLocation(), item);
                 }
@@ -58,6 +48,18 @@ public class InventoryEvents implements Listener {
         
     }
     
+    public static <T> T getOrDefault(T object, T def) {
+        return object != null ? object : def;
+    }
+    
+    @EventHandler
+    @SuppressWarnings("unused")
+    public void event(InventoryCloseEvent e) {
+        
+        if (e.getView().getTitle().equals(name)) {
+            saveInventory(e.getInventory(), (Player) e.getPlayer());
+        }
+    }
     
     @EventHandler(priority = EventPriority.HIGHEST)
     @SuppressWarnings("unused")
@@ -67,7 +69,7 @@ public class InventoryEvents implements Listener {
             if (e.getRawSlot() == -999) {
                 return;
             }
-    
+            
             if (!Main.viewers.containsKey(e.getWhoClicked().getUniqueId())) {
                 return;
             }
@@ -106,9 +108,5 @@ public class InventoryEvents implements Listener {
             }
             
         }
-    }
-    
-    public static <T> T getOrDefault(T object, T def) {
-        return object != null ? object : def;
     }
 }

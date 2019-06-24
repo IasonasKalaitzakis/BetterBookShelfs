@@ -25,12 +25,9 @@ public class Main extends JavaPlugin {
         /*
         * changelog
         *
-        * added paper to the whitelist
-        * added maps to the whitelist
-        * added locks
-        *   to lock a bookshelf -> open a bookshelf sneaked with a renamed tripwire hook to lock it (the name is the code)
-        *   to unlock a bookshelf -> open a bookshelf sneaked with a renamed tripwire hook to unlock it (the name must be the code)
-        *   to open a locked bookshelf -> open the bookshelf while holding a tripwire hook with the name of the lock
+        * you can now open locked bookshelfs while carrying the key anywhere in your inventory,
+        * even when its in a shulkerbox
+        *
         * */
         
         PluginManager pm = getServer().getPluginManager();
@@ -85,10 +82,13 @@ public class Main extends JavaPlugin {
                     l.getWorld().dropItemNaturally(l, is);
                 }
             } else {
-                if (!isEmpty(inventories.get(l).getLeft())) {
-                    saveLocation("inv." + i + ".l", l);
+                boolean empty = !isEmpty(inventories.get(l).getLeft());
+                if (empty) {
                     saveInventory("inv." + i + ".i", inventories.get(l).getLeft());
+                }
+                if (inventories.get(l).getRight() != null || empty) {
                     saveLock("inv." + i + ".lock", inventories.get(l).getRight());
+                    saveLocation("inv." + i + ".l", l);
                 }
             }
             i++;
@@ -97,6 +97,9 @@ public class Main extends JavaPlugin {
     }
     
     private boolean isEmpty(Inventory inventory) {
+        if (inventory == null) {
+            return true;
+        }
         for (ItemStack is : inventory.getContents()) {
             if (is != null) {
                 return false;
@@ -105,14 +108,14 @@ public class Main extends JavaPlugin {
         return true;
     }
     
-    
     public static final String name = ChatColor.DARK_GRAY + "Book Shelf";
     
     private Inventory getInventory(String path) {
-        int size = getConfig().getInt(path + ".size");
-//        String name = getConfig().getString(path + ".name");
+        Inventory inv = Bukkit.createInventory(null, 18, name);
         
-        Inventory inv = Bukkit.createInventory(null, size, name);
+        if (!getConfig().contains(path)) {
+            return inv;
+        }
         
         List<?> content = getConfig().getList(path + ".content");
         if (content != null) {
@@ -126,8 +129,6 @@ public class Main extends JavaPlugin {
                 }
             }
         }
-//        inv.setContents((ItemStack[]) content.toArray());
-//        inv.setContents(content.toArray(new ItemStack[]{}));
         return inv;
     }
     
@@ -142,8 +143,6 @@ public class Main extends JavaPlugin {
     }
     
     private void saveInventory(String path, Inventory inventory) {
-        getConfig().set(path + ".size", inventory.getSize());
-//        getConfig().set(path + ".name", inventory.getName());
         getConfig().set(path + ".content", inventory.getContents());
     }
     
