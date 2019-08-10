@@ -2,6 +2,7 @@ package com.spaceman.bookshelfs.events;
 
 import com.spaceman.bookshelfs.Main;
 import com.spaceman.bookshelfs.Pair;
+import com.spaceman.bookshelfs.State;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -13,9 +14,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
-import static com.spaceman.bookshelfs.Main.SHELF_SIZE;
-import static com.spaceman.bookshelfs.Main.name;
+import static com.spaceman.bookshelfs.Main.*;
 
 public class InventoryEvents implements Listener {
     
@@ -43,7 +44,7 @@ public class InventoryEvents implements Listener {
                 }
             }
         }
-        Pair<Location, String> pair = Main.viewers.remove(player.getUniqueId());
+        Pair<Location, Pair<State, String>> pair = Main.viewers.remove(player.getUniqueId());
         Main.inventories.put(pair.getLeft(), new Pair<>(inventory, pair.getRight()));
         
     }
@@ -56,8 +57,9 @@ public class InventoryEvents implements Listener {
     @SuppressWarnings("unused")
     public void event(InventoryCloseEvent e) {
         
-        if (e.getView().getTitle().equals(name)) {
+        if (e.getView().getTitle().equals(NAME)) {
             saveInventory(e.getInventory(), (Player) e.getPlayer());
+            viewers.remove(e.getPlayer().getUniqueId());
         }
     }
     
@@ -65,7 +67,7 @@ public class InventoryEvents implements Listener {
     @SuppressWarnings("unused")
     public void event(InventoryClickEvent e) {
         
-        if (e.getView().getTitle().equals(name)) {
+        if (e.getView().getTitle().equals(NAME)) {
             if (e.getRawSlot() == -999) {
                 return;
             }
@@ -74,8 +76,9 @@ public class InventoryEvents implements Listener {
                 return;
             }
             Location l = Main.viewers.get(e.getWhoClicked().getUniqueId()).getLeft();
-            String lock = Main.viewers.get(e.getWhoClicked().getUniqueId()).getRight();
-            Main.inventories.put(l, new Pair<>(e.getInventory(), lock));
+            String lock = Main.viewers.get(e.getWhoClicked().getUniqueId()).getRight().getRight();
+            State state = Main.viewers.get(e.getWhoClicked().getUniqueId()).getRight().getLeft();
+            Main.inventories.put(l, new Pair<>(e.getInventory(), new Pair<>(state, lock)));
             
             if (e.getAction().equals(InventoryAction.MOVE_TO_OTHER_INVENTORY) && e.getRawSlot() >= SHELF_SIZE) {
                 if (!getOrDefault(e.getCurrentItem(), new ItemStack(Material.AIR)).getType().equals(Material.BOOK) &&
@@ -106,6 +109,54 @@ public class InventoryEvents implements Listener {
                     e.setCancelled(true);
                 }
             }
+            
+        } else if (e.getView().getTitle().equals(NAME + " (view only)")) {
+            
+            switch (e.getAction()) {
+                case NOTHING:
+                case DROP_ONE_CURSOR:
+                case DROP_ALL_CURSOR:
+                case SWAP_WITH_CURSOR:
+                case PLACE_ONE:
+                case PLACE_SOME:
+                case UNKNOWN:
+                case CLONE_STACK:
+                case HOTBAR_SWAP:
+                case HOTBAR_MOVE_AND_READD:
+                case DROP_ONE_SLOT:
+                case DROP_ALL_SLOT:
+                case PLACE_ALL:
+                case PICKUP_ONE:
+                case PICKUP_HALF:
+                case PICKUP_SOME:
+                    if (e.getRawSlot() < SHELF_SIZE) {
+                        e.setCancelled(true);
+                    }
+                    break;
+                case MOVE_TO_OTHER_INVENTORY:
+                case COLLECT_TO_CURSOR:
+                    e.setCancelled(true);
+                case PICKUP_ALL:
+                    
+                    if (e.getRawSlot() < SHELF_SIZE) {
+                        ItemStack is = e.getCurrentItem();
+                        if (is != null) {
+                            if (is.getType().equals(Material.WRITTEN_BOOK)) {
+                                if (is.hasItemMeta()) {
+                                    ItemMeta im = is.getItemMeta();
+                                    if (im.hasLore()) {
+                                        if (im.getLore().contains("Click to copy book")) {
+                                            e.setCursor(is);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        e.setCancelled(true);
+                    }
+                    break;
+            }
+            
             
         }
     }

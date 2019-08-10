@@ -3,6 +3,7 @@ package com.spaceman.bookshelfs;
 import com.spaceman.bookshelfs.events.BlockEvents;
 import com.spaceman.bookshelfs.events.InventoryEvents;
 import org.bukkit.*;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
@@ -10,43 +11,69 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+
+import static com.spaceman.bookshelfs.events.BlockEvents.openBookshelf;
 
 public class Main extends JavaPlugin {
     
     public static final int SHELF_SIZE = 18;//this number must be a multiple of 9, example: 2 rows * 9 = 18
-    
-    public static HashMap<Location, Pair<Inventory, String>> inventories = new HashMap<>();
-    public static HashMap<UUID, Pair<Location, String>> viewers = new HashMap<>();
+    public static final String NAME = ChatColor.DARK_GRAY + "Book Shelf";
+    //location of shelf, inventory of shelf, state of shelf, lock of shelf
+    public static HashMap<Location, Pair<Inventory, Pair<State, String>>> inventories = new HashMap<>();
+    //viewer UUID, location of shelf, state of shelf, lock of shelf
+    public static HashMap<UUID, Pair<Location, Pair<State, String>>> viewers = new HashMap<>();
     
     @Override
     public void onEnable() {
         
         /*
-        * changelog
-        *
-        * you can now open locked bookshelfs while carrying the key anywhere in your inventory,
-        * even when its in a shulkerbox
-        *
-        * */
+         * changelog
+         *
+         * lock states:
+         *   open (every one can do anything)
+         *   closed (with key can open and edit/change state)
+         *   view (everyone kan open, with key can edit and change state)
+         * copy book:
+         *   - when in view mode, copy books can be copied
+         *   - to create a copy book -> place book in shelf (written book name: 'nameOfBook<copy>'), set shelf to view mode.
+         *     then the book will be converted to a copy book.
+         *   - to remove copy function: rename book to 'nameOfBook<uncopy>' and set shelf mode to view
+         * fixed some bugs
+         *
+         * */
+        
+        /*
+         * todo
+         *
+         *
+         * */
         
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(new BlockEvents(), this);
         pm.registerEvents(new InventoryEvents(), this);
-        
-        if (this.getConfig().contains("view")) {
-            for (String uuid : this.getConfig().getConfigurationSection("view").getKeys(false)) {
-                Location l = getLocation("view.l." + uuid);
-                String lock = getLock("view.lock." + uuid);
-                viewers.put(UUID.fromString(uuid), new Pair<>(l, lock));
-            }
-        }
+    
         if (this.getConfig().contains("inv")) {
             for (String s : this.getConfig().getConfigurationSection("inv").getKeys(false)) {
                 Location l = getLocation("inv." + s + ".l");
                 Inventory i = getInventory("inv." + s + ".i");
                 String lock = getLock("inv." + s + ".lock");
-                inventories.put(l, new Pair<>(i, lock));
+                State state = getState("inv." + s + ".state");
+                inventories.put(l, new Pair<>(i, new Pair<>(state, lock)));
+            }
+        }
+        if (this.getConfig().contains("view")) {
+            for (String uuid : this.getConfig().getConfigurationSection("view").getKeys(false)) {
+                Player player = Bukkit.getPlayer(UUID.fromString(uuid));
+                if (player != null && player.isOnline()) {
+                    Location l = getLocation("view." + uuid + ".l");
+                    String lock = getLock("view." + uuid + ".lock");
+                    State state = getState("view." + uuid + ".state");
+                    viewers.put(UUID.fromString(uuid), new Pair<>(l, new Pair<>(state, lock)));
+                
+                    openBookshelf(player, l);
+                }
             }
         }
     }
@@ -57,14 +84,14 @@ public class Main extends JavaPlugin {
         this.getConfig().set("inv", null);
         this.getConfig().set("view", null);
         
-        if (inventories == null || inventories.isEmpty()) {
-            saveConfig();
-            return;
-        }
-        
         for (UUID u : viewers.keySet()) {
-            saveLocation("view.l." + u, viewers.get(u).getLeft());
-            saveLock("view.lock." + u, viewers.get(u).getRight());
+            saveLocation("view." + u + ".l", viewers.get(u).getLeft());
+            saveLock("view." + u + ".lock", viewers.get(u).getRight().getRight());
+            saveState("view." + u + ".state", viewers.get(u).getRight().getLeft());
+            Player player = Bukkit.getPlayer(u);
+            if (player != null && player.isOnline()) {
+                player.closeInventory();
+            }
         }
         
         int i = 0;
@@ -82,12 +109,22 @@ public class Main extends JavaPlugin {
                     l.getWorld().dropItemNaturally(l, is);
                 }
             } else {
-                boolean empty = !isEmpty(inventories.get(l).getLeft());
-                if (empty) {
+                boolean saveL = false;
+                
+                if (!isEmpty(inventories.get(l).getLeft())) {
                     saveInventory("inv." + i + ".i", inventories.get(l).getLeft());
+                    saveL = true;
                 }
-                if (inventories.get(l).getRight() != null || empty) {
-                    saveLock("inv." + i + ".lock", inventories.get(l).getRight());
+                if (inventories.get(l).getRight().getRight() != null) {
+                    saveLock("inv." + i + ".lock", inventories.get(l).getRight().getRight());
+                    saveL = true;
+                }
+                if (inventories.get(l).getRight().getLeft() != State.OPEN) {
+                    saveState("inv." + i + ".state", inventories.get(l).getRight().getLeft());
+                    saveL = true;
+                }
+                
+                if (saveL) {
                     saveLocation("inv." + i + ".l", l);
                 }
             }
@@ -108,10 +145,8 @@ public class Main extends JavaPlugin {
         return true;
     }
     
-    public static final String name = ChatColor.DARK_GRAY + "Book Shelf";
-    
     private Inventory getInventory(String path) {
-        Inventory inv = Bukkit.createInventory(null, 18, name);
+        Inventory inv = Bukkit.createInventory(null, 18, NAME);
         
         if (!getConfig().contains(path)) {
             return inv;
@@ -138,8 +173,20 @@ public class Main extends JavaPlugin {
         }
         return getConfig().getString(path);
     }
+    
     private void saveLock(String path, String lock) {
         getConfig().set(path, lock);
+    }
+    
+    private State getState(String path) {
+        if (!getConfig().contains(path)) {
+            return State.OPEN;
+        }
+        return State.valueOf(getConfig().getString(path));
+    }
+    
+    private void saveState(String path, State state) {
+        getConfig().set(path, state.name());
     }
     
     private void saveInventory(String path, Inventory inventory) {
@@ -158,7 +205,7 @@ public class Main extends JavaPlugin {
         if (!getConfig().contains(path)) {
             return null;
         }
-        World world = Bukkit.getWorld(getConfig().getString(path + ".world"));
+        World world = Bukkit.getWorld(Objects.requireNonNull(getConfig().getString(path + ".world")));
         if (world == null) {
             return null;
         }
