@@ -149,7 +149,6 @@ public class BlockEvents implements Listener {
                                     Inventory inv = p.getLeft();
                                     for (ItemStack is : inv) {
                                         if (is != null && is.getType().equals(Material.WRITTEN_BOOK) && is.hasItemMeta() && is.getItemMeta().hasDisplayName()) {
-                                            System.out.println("test");
                                             ItemMeta tmpMeta = is.getItemMeta();
                                             if (tmpMeta.getDisplayName().endsWith("<copy>")) {
                                                 tmpMeta.setDisplayName(tmpMeta.getDisplayName().replace("<copy>", ""));

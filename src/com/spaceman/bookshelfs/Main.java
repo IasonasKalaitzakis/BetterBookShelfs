@@ -31,17 +31,7 @@ public class Main extends JavaPlugin {
         /*
          * changelog
          *
-         * lock states:
-         *   open (every one can do anything)
-         *   closed (with key can open and edit/change state)
-         *   view (everyone kan open, with key can edit and change state)
-         * copy book:
-         *   - when in view mode, copy books can be copied
-         *   - to create a copy book -> place book in shelf (written book name: 'nameOfBook<copy>'), set shelf to view mode.
-         *     then the book will be converted to a copy book.
-         *   - to remove copy function: rename book to 'nameOfBook<uncopy>' and set shelf mode to view
-         * fixed some bugs
-         *
+         *  removed test log
          * */
         
         /*
