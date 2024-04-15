@@ -18,7 +18,7 @@ import static com.spaceman.bookshelfs.events.BlockEvents.openBookshelf;
 
 public class Main extends JavaPlugin {
     
-    public static final int SHELF_SIZE = 18;//this number must be a multiple of 9, example: 2 rows * 9 = 18
+    public static final int SHELF_SIZE = 27;//this number must be a multiple of 9, example: 2 rows * 9 = 18
     public static final String NAME = ChatColor.DARK_GRAY + "Book Shelf";
     //location of shelf, inventory of shelf, state of shelf, lock of shelf
     public static HashMap<Location, Pair<Inventory, Pair<State, String>>> inventories = new HashMap<>();
